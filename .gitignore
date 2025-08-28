@@ -1,0 +1,70 @@
+# Ignore build results
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+
+# Ignore user-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Ignore caches
+*.VC.db
+*.VC.VC.opendb
+*.ipch
+
+# Ignore other generated files
+*.pch
+*.obj
+*.exe
+*.dll
+*.pdb
+*.idb
+*.class
+*.lib
+*.app
+*.iobj
+*.ipdb
+
+# Ignore NuGet packages
+*.nupkg
+*.snupkg
+*.nuspec
+packages/
+
+# Ignore temporary files
+*.log
+*.tlog
+*.lastbuildstate
+*.cachefile
+*.db
+*.opendb
+*.tmp
+
+# Ignore VS Code settings (if you use VS Code alongside VS)
+.vscode/
+
+# Ignore Visual Studio settings folder
+.vs/
+
+# Ignore CMake build directories (if you use CMake with VS)
+[Cc]MakeFiles/
+CMakeCache.txt
+CMakeScripts/
+Testing/
+Makefile
+cmake_install.cmake
+CMakeLists.txt.user
+build/
+
+# Ignore other IDE/OS junk
+*.DS_Store
+Thumbs.db
+desktop.ini
