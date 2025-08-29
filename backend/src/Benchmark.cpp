@@ -3,6 +3,7 @@
 #include <random>
 
 #include "Benchmark.h"
+#include "Orderbook.h"
 
 void prepareOrderbookBenchmark(size_t numOrders, Orderbook& orderbook) {
 	const int SEED = 42;
@@ -38,8 +39,8 @@ void runAddOrderBenchmark(size_t numOrders) {
 void runAllBenchmarks(ThreadPool& pool) {
 	std::cout << std::fixed << std::setprecision(8);
 
-	runBenchmark("Orderbook::GetOrderInfos()", 100'000, [](Orderbook& ob) { return ob.GetOrderInfos(); });
-	runBenchmark("Orderbook::GetOrderInfosAsync()", 100'000, [](Orderbook& ob) { return ob.GetOrderInfosAsync(); });
-	runBenchmark("Orderbook::GetOrderInfosAsyncPooled()", 100'000, [&](Orderbook& ob) { return ob.GetOrderInfosAsyncPooled(pool); });
-	runBenchmark("Orderbook::GetOrderInfosPooled()", 100'000, [&](Orderbook& ob) { return ob.GetOrderInfosPooled(pool); });
+	runBenchmark("Orderbook::GetOrderInfos()", 100'000, [](Orderbook& ob) { return ob.GetOrderInfos(Orderbook::SequentialStrategy()); });
+	runBenchmark("Orderbook::GetOrderInfosAsync()", 100'000, [](Orderbook& ob) { return ob.GetOrderInfos(Orderbook::AsyncStrategy()); });
+	runBenchmark("Orderbook::GetOrderInfosAsyncPooled()", 100'000, [&](Orderbook& ob) { return ob.GetOrderInfos(Orderbook::AsyncThreadPoolStrategy(), pool); });
+	runBenchmark("Orderbook::GetOrderInfosPooled()", 100'000, [&](Orderbook& ob) { return ob.GetOrderInfos(Orderbook::ThreadPoolStrategy(), pool); });
 }

@@ -133,6 +133,7 @@
     <ClInclude Include="backend\include\ApiClient.h" />
     <ClInclude Include="backend\include\Benchmark.h" />
     <ClInclude Include="backend\include\Constants.h" />
+    <ClInclude Include="backend\include\IOrderbook.h" />
     <ClInclude Include="backend\include\LevelInfo.h" />
     <ClInclude Include="backend\include\Order.h" />
     <ClInclude Include="backend\include\Orderbook.h" />

@@ -71,5 +71,8 @@
     <ClInclude Include="backend\include\Benchmark.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="backend\include\IOrderbook.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

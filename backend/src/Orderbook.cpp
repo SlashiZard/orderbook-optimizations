@@ -5,6 +5,27 @@
 
 #include "Orderbook.h"
 
+// Strategy singletons
+const Orderbook::IOrderbookSnapshotStrategy& Orderbook::SequentialStrategy() {
+	static SequentialSnapshot instance;
+	return instance;
+}
+
+const Orderbook::IOrderbookSnapshotStrategy& Orderbook::AsyncStrategy() {
+	static AsyncSnapshot instance;
+	return instance;
+}
+
+const Orderbook::IOrderbookSnapshotStrategy& Orderbook::ThreadPoolStrategy() {
+	static ThreadPoolSnapshot instance;
+	return instance;
+}
+
+const Orderbook::IOrderbookSnapshotStrategy& Orderbook::AsyncThreadPoolStrategy() {
+	static AsyncThreadPoolSnapshot instance;
+	return instance;
+}
+
 /* Cancels GFD orders at the end of a trading day (4PM).
  * Runs in O(N * log(M)). 
  */
@@ -347,33 +368,45 @@ std::size_t Orderbook::Size() const {
 	return orders_.size();
 }
 
-/* Generates a snapshot of the aggregated orderbook, summarizing the total quantity at each price level for both bids and asks.
- * Runs in O(N) where N is the total amount of orders. 
+/* Generates a snapshot of the aggregated orderbook based on the selected strategy.
  */
-OrderbookLevelInfos Orderbook::GetOrderInfos() const {
-	LevelInfos bidInfos, askInfos;
-	bidInfos.reserve(orders_.size());
-	askInfos.reserve(orders_.size());
+OrderbookLevelInfos Orderbook::GetOrderInfos(const IOrderbookSnapshotStrategy& strategy) const {
+	return strategy.Generate(bids_, asks_);
+}
 
-	auto CreateLevelInfos = [](Price price, const OrderPointers& orders) {
-		return LevelInfo{ price, std::accumulate(orders.begin(), orders.end(), (Quantity)0,
-			[](Quantity runningSum, const OrderPointer& order)
-			{ return runningSum + order->GetRemainingQuantity(); }) };
-	};
+OrderbookLevelInfos Orderbook::GetOrderInfos(const IOrderbookSnapshotStrategy& strategy, ThreadPool& pool) const {
+	return strategy.Generate(bids_, asks_, pool);
+}
 
-	for (const auto& [price, orders] : bids_)
-		bidInfos.push_back(CreateLevelInfos(price, orders));
+/* Generates a snapshot of the aggregated orderbook, summarizing the total quantity at each price level for both bids and asks.
+ * Runs in O(N) where N is the total amount of orders.
+ */
+OrderbookLevelInfos Orderbook::SequentialSnapshot::Generate(const BidMap& bids, const AskMap& asks) const {
+	LevelInfos bidInfos;
+	bidInfos.reserve(bids.size());
+	for (const auto& [price, orderList] : bids) {
+		Quantity total = 0;
+		for (const auto& order : orderList)
+			total += order->GetRemainingQuantity();
+		bidInfos.push_back(LevelInfo{ price, total });
+	}
 
-	for (const auto& [price, orders] : asks_)
-		askInfos.push_back(CreateLevelInfos(price, orders));
+	LevelInfos askInfos;
+	askInfos.reserve(asks.size());
+	for (const auto& [price, orderList] : asks) {
+		Quantity total = 0;
+		for (const auto& order : orderList)
+			total += order->GetRemainingQuantity();
+		askInfos.push_back(LevelInfo{ price, total });
+	}
 
-	return OrderbookLevelInfos{ bidInfos, askInfos };
+	return { bidInfos, askInfos };
 }
 
 /* Generates a snapshot of the aggregated orderbook, with the bids and asks being retrieved concurrently using async/futures.
  * Runs in O(N) where N is the total amount of orders.
  */
-OrderbookLevelInfos Orderbook::GetOrderInfosAsync() const {
+OrderbookLevelInfos Orderbook::AsyncSnapshot::Generate(const BidMap& bids, const AskMap& asks) const {
 	auto CreateLevelInfos = [](Price price, const OrderPointers& orders) {
 		return LevelInfo{ price, std::accumulate(orders.begin(), orders.end(), (Quantity)0,
 			[](Quantity runningSum, const OrderPointer& order)
@@ -383,8 +416,8 @@ OrderbookLevelInfos Orderbook::GetOrderInfosAsync() const {
 
 	auto bidsFuture = std::async(std::launch::async, [&]() {
 		LevelInfos bidInfos;
-		bidInfos.reserve(orders_.size());
-		for (const auto& [price, orders] : bids_) {
+		bidInfos.reserve(bids.size());
+		for (const auto& [price, orders] : bids) {
 			bidInfos.push_back(CreateLevelInfos(price, orders));
 		}
 		return bidInfos;
@@ -392,8 +425,8 @@ OrderbookLevelInfos Orderbook::GetOrderInfosAsync() const {
 
 	auto asksFuture = std::async(std::launch::async, [&]() {
 		LevelInfos askInfos;
-		askInfos.reserve(orders_.size());
-		for (const auto& [price, orders] : asks_) {
+		askInfos.reserve(asks.size());
+		for (const auto& [price, orders] : asks) {
 			askInfos.push_back(CreateLevelInfos(price, orders));
 		}
 		return askInfos;
@@ -405,50 +438,10 @@ OrderbookLevelInfos Orderbook::GetOrderInfosAsync() const {
 	return OrderbookLevelInfos{ bidInfos, askInfos };
 }
 
-/* Generates a snapshot of the aggregated orderbook, with the bids and asks being retrieved concurrently using async/futures and a thread pool.
- * Runs in O(N) where N is the total amount of orders.
- */
-OrderbookLevelInfos Orderbook::GetOrderInfosAsyncPooled(ThreadPool& pool) const {
-	auto CreateLevelInfos = [](Price price, const OrderPointers& orders) {
-		return LevelInfo{ price, std::accumulate(orders.begin(), orders.end(), (Quantity)0,
-			[](Quantity runningSum, const OrderPointer& order)
-			{ return runningSum + order->GetRemainingQuantity(); })
-		};
-	};
-
-	std::vector<std::future<LevelInfo>> bidFutures;
-	bidFutures.reserve(bids_.size());
-
-	for (const auto& [price, orders] : bids_) {
-		bidFutures.push_back(pool.submit(CreateLevelInfos, price, orders));
-	}
-
-	LevelInfos bidInfos;
-	bidInfos.reserve(bids_.size());
-	for (auto& fut : bidFutures) {
-		bidInfos.push_back(fut.get());
-	}
-
-	std::vector<std::future<LevelInfo>> askFutures;
-	askFutures.reserve(asks_.size());
-
-	for (const auto& [price, orders] : asks_) {
-		askFutures.push_back(pool.submit(CreateLevelInfos, price, orders));
-	}
-
-	LevelInfos askInfos;
-	askInfos.reserve(asks_.size());
-	for (auto& fut : askFutures) {
-		askInfos.push_back(fut.get());
-	}
-
-	return OrderbookLevelInfos{ bidInfos, askInfos };
-}
-
 /* Generates a snapshot of the aggregated orderbook, with the bids and asks being retrieved concurrently using a thread pool.
  * Runs in O(N) where N is the total amount of orders.
  */
-OrderbookLevelInfos Orderbook::GetOrderInfosPooled(ThreadPool& pool) const {
+OrderbookLevelInfos Orderbook::ThreadPoolSnapshot::Generate(const BidMap& bids, const AskMap& asks, ThreadPool& pool) const {
 	auto CreateLevelInfos = [](Price price, const OrderPointers& orders) {
 		return LevelInfo{ price, std::accumulate(orders.begin(), orders.end(), (Quantity)0,
 			[](Quantity runningSum, const OrderPointer& order)
@@ -473,7 +466,7 @@ OrderbookLevelInfos Orderbook::GetOrderInfosPooled(ThreadPool& pool) const {
 
 		std::vector<std::future<LevelInfos>> futures;
 		futures.reserve(numBatches);
-		
+
 		auto it = container.begin();
 		for (size_t i = 0; i < numBatches; ++i) {
 			auto batchStart = it;
@@ -494,8 +487,48 @@ OrderbookLevelInfos Orderbook::GetOrderInfosPooled(ThreadPool& pool) const {
 		return combinedInfos;
 	};
 
-	LevelInfos bidInfos = submitBatches(bids_);
-	LevelInfos askInfos = submitBatches(asks_);
+	LevelInfos bidInfos = submitBatches(bids);
+	LevelInfos askInfos = submitBatches(asks);
+
+	return OrderbookLevelInfos{ bidInfos, askInfos };
+}
+
+/* Generates a snapshot of the aggregated orderbook, with the bids and asks being retrieved concurrently using async/futures and a thread pool.
+ * Runs in O(N) where N is the total amount of orders.
+ */
+OrderbookLevelInfos Orderbook::AsyncThreadPoolSnapshot::Generate(const BidMap& bids, const AskMap& asks, ThreadPool& pool) const {
+	auto CreateLevelInfos = [](Price price, const OrderPointers& orders) {
+		return LevelInfo{ price, std::accumulate(orders.begin(), orders.end(), (Quantity)0,
+			[](Quantity runningSum, const OrderPointer& order)
+			{ return runningSum + order->GetRemainingQuantity(); })
+		};
+	};
+
+	std::vector<std::future<LevelInfo>> bidFutures;
+	bidFutures.reserve(bids.size());
+
+	for (const auto& [price, orders] : bids) {
+		bidFutures.push_back(pool.submit(CreateLevelInfos, price, orders));
+	}
+
+	LevelInfos bidInfos;
+	bidInfos.reserve(bids.size());
+	for (auto& fut : bidFutures) {
+		bidInfos.push_back(fut.get());
+	}
+
+	std::vector<std::future<LevelInfo>> askFutures;
+	askFutures.reserve(asks.size());
+
+	for (const auto& [price, orders] : asks) {
+		askFutures.push_back(pool.submit(CreateLevelInfos, price, orders));
+	}
+
+	LevelInfos askInfos;
+	askInfos.reserve(asks.size());
+	for (auto& fut : askFutures) {
+		askInfos.push_back(fut.get());
+	}
 
 	return OrderbookLevelInfos{ bidInfos, askInfos };
 }
