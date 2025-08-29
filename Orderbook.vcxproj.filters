@@ -24,45 +24,51 @@
     <ClCompile Include="backend\src\ApiClient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="backend\src\Benchmark.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="backend\src\Constants.h">
+    <ClInclude Include="backend\include\ApiClient.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="backend\src\LevelInfo.h">
+    <ClInclude Include="backend\include\Constants.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="backend\src\Order.h">
+    <ClInclude Include="backend\include\LevelInfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="backend\src\Orderbook.h">
+    <ClInclude Include="backend\include\Order.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="backend\src\OrderBookLevelInfos.h">
+    <ClInclude Include="backend\include\Orderbook.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="backend\src\OrderModify.h">
+    <ClInclude Include="backend\include\OrderBookLevelInfos.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="backend\src\OrderType.h">
+    <ClInclude Include="backend\include\OrderModify.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="backend\src\Side.h">
+    <ClInclude Include="backend\include\OrderType.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="backend\src\Trade.h">
+    <ClInclude Include="backend\include\Side.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="backend\src\TradeInfo.h">
+    <ClInclude Include="backend\include\ThreadPool.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="backend\src\Usings.h">
+    <ClInclude Include="backend\include\Trade.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="backend\src\ThreadPool.h">
+    <ClInclude Include="backend\include\TradeInfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="backend\src\ApiClient.h">
+    <ClInclude Include="backend\include\Usings.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\include\Benchmark.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

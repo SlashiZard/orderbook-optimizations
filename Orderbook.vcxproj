@@ -91,6 +91,7 @@
       <WarningLevel>Level3</WarningLevel>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(ProjectDir)backend/include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -124,23 +125,25 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="backend\src\ApiClient.cpp" />
+    <ClCompile Include="backend\src\Benchmark.cpp" />
     <ClCompile Include="backend\src\main.cpp" />
     <ClCompile Include="backend\src\Orderbook.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="backend\src\ApiClient.h" />
-    <ClInclude Include="backend\src\Constants.h" />
-    <ClInclude Include="backend\src\LevelInfo.h" />
-    <ClInclude Include="backend\src\Order.h" />
-    <ClInclude Include="backend\src\Orderbook.h" />
-    <ClInclude Include="backend\src\OrderBookLevelInfos.h" />
-    <ClInclude Include="backend\src\OrderModify.h" />
-    <ClInclude Include="backend\src\OrderType.h" />
-    <ClInclude Include="backend\src\Side.h" />
-    <ClInclude Include="backend\src\ThreadPool.h" />
-    <ClInclude Include="backend\src\Trade.h" />
-    <ClInclude Include="backend\src\TradeInfo.h" />
-    <ClInclude Include="backend\src\Usings.h" />
+    <ClInclude Include="backend\include\ApiClient.h" />
+    <ClInclude Include="backend\include\Benchmark.h" />
+    <ClInclude Include="backend\include\Constants.h" />
+    <ClInclude Include="backend\include\LevelInfo.h" />
+    <ClInclude Include="backend\include\Order.h" />
+    <ClInclude Include="backend\include\Orderbook.h" />
+    <ClInclude Include="backend\include\OrderBookLevelInfos.h" />
+    <ClInclude Include="backend\include\OrderModify.h" />
+    <ClInclude Include="backend\include\OrderType.h" />
+    <ClInclude Include="backend\include\Side.h" />
+    <ClInclude Include="backend\include\ThreadPool.h" />
+    <ClInclude Include="backend\include\Trade.h" />
+    <ClInclude Include="backend\include\TradeInfo.h" />
+    <ClInclude Include="backend\include\Usings.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

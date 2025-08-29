@@ -1,10 +1,10 @@
-#include "ApiClient.h"
-#include "Orderbook.h"
-
 #include <cpr/cpr.h>
 #include <nlohmann/json.hpp>
 #include <stdexcept>
 #include <iostream>
+
+#include "ApiClient.h"
+#include "Orderbook.h"
 
 using json = nlohmann::json;
 

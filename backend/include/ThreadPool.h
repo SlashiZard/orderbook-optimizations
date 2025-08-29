@@ -14,7 +14,7 @@ public:
     explicit ThreadPool(size_t threadCount);
     ~ThreadPool();
 
-    // Submit a task and get a future result.
+    // Submit a task and get a future result
     template<typename Func, typename... Args>
     auto submit(Func&& f, Args&&... args) -> std::future<decltype(f(args...))>;
 
@@ -38,6 +38,7 @@ inline ThreadPool::ThreadPool(size_t threadCount) {
 inline ThreadPool::~ThreadPool() {
     stop_ = true;
     condition_.notify_all();
+
     for (auto& thread : workers_) {
         if (thread.joinable()) thread.join();
     }

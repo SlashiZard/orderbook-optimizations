@@ -2,14 +2,12 @@
 
 #include "TradeInfo.h"
 
-class Trade
-{
+class Trade {
 public:
     Trade(const TradeInfo& bidTrade, const TradeInfo& askTrade)
         : bidTrade_{ bidTrade }
         , askTrade_{ askTrade }
-    {
-    }
+    {}
 
     const TradeInfo& GetBidTrade() const { return bidTrade_; }
     const TradeInfo& GetAskTrade() const { return askTrade_; }
