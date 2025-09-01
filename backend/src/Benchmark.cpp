@@ -5,14 +5,27 @@
 #include "Benchmark.h"
 #include "Orderbook.h"
 
-void prepareOrderbookBenchmark(size_t numOrders, Orderbook& orderbook) {
-	const int SEED = 42;
-	OrderId orderId = 1;
+namespace {
+	constexpr OrderId INITIAL_ORDER_ID = 1;
+	constexpr int RNG_SEED = 42;
+	constexpr uint64_t PRICE_MIN = 30'000'000;
+	constexpr uint64_t PRICE_MAX = 31'000'000;
+	constexpr uint64_t QTY_MIN = 1;
+	constexpr uint64_t QTY_MAX = 1000;
+	constexpr double BUY_PROBABILITY = 0.5;
+	
+	constexpr double MS_TO_SEC = 1000.0;
+	constexpr int OUTPUT_PRECISION = 8;
+	constexpr size_t DEFAULT_BENCHMARK_SIZE = 100'000;
+}
 
-	std::mt19937 rng(SEED);
-	std::uniform_int_distribution<uint64_t> priceDist(30'000'000, 31'000'000);
-	std::uniform_int_distribution<uint64_t> qtyDist(1, 1000);
-	std::bernoulli_distribution sideDist(0.5);
+void prepareOrderbookBenchmark(size_t numOrders, Orderbook& orderbook) {
+	OrderId orderId = INITIAL_ORDER_ID;
+
+	std::mt19937 rng(RNG_SEED);
+	std::uniform_int_distribution<uint64_t> priceDist(PRICE_MIN, PRICE_MAX);
+	std::uniform_int_distribution<uint64_t> qtyDist(QTY_MIN, QTY_MAX);
+	std::bernoulli_distribution sideDist(BUY_PROBABILITY);
 
 	for (size_t i = 0; i < numOrders; ++i) {
 		Side side = sideDist(rng) ? Side::Buy : Side::Sell;
@@ -33,14 +46,14 @@ void runAddOrderBenchmark(size_t numOrders) {
 	auto duration = duration_cast<milliseconds>(end - start).count();
 
 	std::cout << "Processed " << numOrders << " orders in " << duration << "ms\n";
-	std::cout << "Throughput: " << (numOrders * 1000.0 / duration) << " orders/sec\n";
+	std::cout << "Throughput: " << (numOrders * MS_TO_SEC / duration) << " orders/sec\n";
 }
 
 void runAllBenchmarks(ThreadPool& pool) {
-	std::cout << std::fixed << std::setprecision(8);
+	std::cout << std::fixed << std::setprecision(OUTPUT_PRECISION);
 
-	runBenchmark("Orderbook::GetOrderInfos()", 100'000, [](Orderbook& ob) { return ob.GetOrderInfos(Orderbook::SequentialStrategy()); });
-	runBenchmark("Orderbook::GetOrderInfosAsync()", 100'000, [](Orderbook& ob) { return ob.GetOrderInfos(Orderbook::AsyncStrategy()); });
-	runBenchmark("Orderbook::GetOrderInfosAsyncPooled()", 100'000, [&](Orderbook& ob) { return ob.GetOrderInfos(Orderbook::AsyncThreadPoolStrategy(), pool); });
-	runBenchmark("Orderbook::GetOrderInfosPooled()", 100'000, [&](Orderbook& ob) { return ob.GetOrderInfos(Orderbook::ThreadPoolStrategy(), pool); });
+	runBenchmark("Orderbook::GetOrderInfos()", DEFAULT_BENCHMARK_SIZE, [](Orderbook& ob) { return ob.GetOrderInfos(Orderbook::SequentialStrategy()); });
+	runBenchmark("Orderbook::GetOrderInfosAsync()", DEFAULT_BENCHMARK_SIZE, [](Orderbook& ob) { return ob.GetOrderInfos(Orderbook::AsyncStrategy()); });
+	runBenchmark("Orderbook::GetOrderInfosAsyncPooled()", DEFAULT_BENCHMARK_SIZE, [&](Orderbook& ob) { return ob.GetOrderInfos(Orderbook::AsyncThreadPoolStrategy(), pool); });
+	runBenchmark("Orderbook::GetOrderInfosPooled()", DEFAULT_BENCHMARK_SIZE, [&](Orderbook& ob) { return ob.GetOrderInfos(Orderbook::ThreadPoolStrategy(), pool); });
 }

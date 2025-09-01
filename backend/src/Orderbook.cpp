@@ -5,6 +5,12 @@
 
 #include "Orderbook.h"
 
+namespace {
+	constexpr int MARKET_END_HOUR = 16;
+	constexpr auto PRUNE_WAIT_BUFFER_MS = std::chrono::milliseconds(100);
+	constexpr unsigned int MIN_THREADS = 1;
+}
+
 // Strategy singletons
 const Orderbook::IOrderbookSnapshotStrategy& Orderbook::SequentialStrategy() {
 	static SequentialSnapshot instance;
@@ -31,7 +37,7 @@ const Orderbook::IOrderbookSnapshotStrategy& Orderbook::AsyncThreadPoolStrategy(
  */
 void Orderbook::PruneGoodForDayOrders() {
 	using namespace std::chrono;
-	const auto end = hours(16);
+	const auto end = hours(MARKET_END_HOUR);
 
 	while (true) {
 		// Compute next 4PM.
@@ -48,7 +54,7 @@ void Orderbook::PruneGoodForDayOrders() {
 		now_parts.tm_sec = 0;
 
 		auto next = system_clock::from_time_t(mktime(&now_parts));
-		auto till = next - now + milliseconds(100);
+		auto till = next - now + PRUNE_WAIT_BUFFER_MS;
 
 		{
 			std::unique_lock ordersLock{ ordersMutex_ };
@@ -460,7 +466,7 @@ OrderbookLevelInfos Orderbook::ThreadPoolSnapshot::Generate(const BidMap& bids, 
 
 	auto submitBatches = [&](const auto& container) -> LevelInfos {
 		const size_t numElements = container.size();
-		const size_t hardwareThreads = std::max(1u, std::thread::hardware_concurrency());
+		const size_t hardwareThreads = std::max(MIN_THREADS, std::thread::hardware_concurrency());
 		const size_t numBatches = std::min(hardwareThreads, numElements);
 		size_t batchSize = numElements / numBatches;
 

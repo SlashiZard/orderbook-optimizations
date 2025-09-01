@@ -75,7 +75,6 @@ private:
     };
 
     struct ThreadPoolSnapshot : IOrderbookSnapshotStrategy {
-        OrderbookLevelInfos Generate(const BidMap& bids, const AskMap& asks) const override = delete;
         OrderbookLevelInfos Generate(const BidMap& bids, const AskMap& asks, ThreadPool& pool) const override;
     };
 

@@ -8,11 +8,19 @@
 
 using json = nlohmann::json;
 
+namespace {
+	constexpr const char* BINANCE_API_URL = "https://api.binance.com/api/v3/depth?symbol=";
+	constexpr const char* BINANCE_WS_URL = "wss://stream.binance.com:9443/ws/btcusdt@depth";
+	constexpr const char* DEFAULT_TARGET_SYMBOL = "BTCUSDT";
+	constexpr int HTTP_OK = 200;
+	constexpr int DEFAULT_L2_LIMIT = 100;
+}
+
 L2Data ApiClient::FetchL2Data(const std::string& symbol, int limit) {
-	std::string url = "https://api.binance.com/api/v3/depth?symbol=" + symbol + "&limit=" + std::to_string(limit);
+	std::string url = BINANCE_API_URL + symbol + "&limit=" + std::to_string(limit);
 
 	cpr::Response r = cpr::Get(cpr::Url{ url });
-	if (r.status_code != 200) {
+	if (r.status_code != HTTP_OK) {
 		throw std::runtime_error("HTTP request failed with error code " + std::to_string(r.status_code));
 	}
 
@@ -45,11 +53,8 @@ L2Data ApiClient::FetchL2Data(const std::string& symbol, int limit) {
 }
 
 void ApiClient::fillOrderbookBinance(Orderbook& orderbook, OrderId& orderId) {
-	const std::string url = "wss://stream.binance.com:9443/ws/btcusdt@depth";
-	const std::string targetSymbol = "BTCUSDT";
-	const int l2DataLimit = 100;
 	ApiClient apiClient;
-	L2Data l2data = apiClient.FetchL2Data(targetSymbol, l2DataLimit);
+	L2Data l2data = apiClient.FetchL2Data(std::string(DEFAULT_TARGET_SYMBOL), DEFAULT_L2_LIMIT);
 
 	for (const auto& bid : l2data.bids) {
 		double price = static_cast<double>(bid.price_) / SCALE_FACTOR;
