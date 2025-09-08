@@ -88,8 +88,7 @@ void Orderbook::PruneGoodForDayOrders() {
  * - N = amount of given order ids and
  * - M = number of distinct price levels.
  */
-void Orderbook::CancelOrders(OrderIds orderIds)
-{
+void Orderbook::CancelOrders(OrderIds orderIds) {
 	std::scoped_lock ordersLock{ ordersMutex_ };
 
 	for (const auto& orderId : orderIds)
@@ -99,8 +98,7 @@ void Orderbook::CancelOrders(OrderIds orderIds)
 /* Cancels the order with the given order id.
  * Runs in O(log(M)) where M is the number of distinct price levels.
  */
-void Orderbook::CancelOrderInternal(OrderId orderId)
-{
+void Orderbook::CancelOrderInternal(OrderId orderId) {
 	if (!orders_.contains(orderId)) return;
 
 	const auto [order, iterator] = orders_.at(orderId);
@@ -155,8 +153,7 @@ void Orderbook::UpdateLevelData(Price price, Quantity quantity, LevelData::Actio
 /* Checks if an order with the given side, price, and quantity can be fully filled.
  * Runs in O(N), where N is the amount of price levels. 
  */
-bool Orderbook::CanFullyFill(Side side, Price price, Quantity quantity) const
-{
+bool Orderbook::CanFullyFill(Side side, Price price, Quantity quantity) const {
 	if (!CanMatch(side, price)) return false;
 
 	std::optional<Price> threshold;
@@ -193,8 +190,7 @@ bool Orderbook::CanFullyFill(Side side, Price price, Quantity quantity) const
  * For a sell order, checks if it can match the best bid.
  * Runs in O(1).
  */
-bool Orderbook::CanMatch(Side side, Price price) const
-{
+bool Orderbook::CanMatch(Side side, Price price) const {
 	if (side == Side::Buy) {
 		if (asks_.empty())
 			return false;
@@ -213,8 +209,7 @@ bool Orderbook::CanMatch(Side side, Price price) const
 /* Matches orders in the orderbook.
  * Runs in O(N * log(M)) where N is the total amount of orders and M is the amount of price levels.
  */
-Trades Orderbook::MatchOrders()
-{
+Trades Orderbook::MatchOrders() {
 	Trades trades;
 	trades.reserve(orders_.size());
 
@@ -284,13 +279,15 @@ Trades Orderbook::MatchOrders()
 	return trades;
 }
 
-Orderbook::Orderbook() : ordersPruneThread_{ [this] { PruneGoodForDayOrders(); } } {}
+//Orderbook::Orderbook() : ordersPruneThread_{ [this] { PruneGoodForDayOrders(); } } {}
+Orderbook::Orderbook() {}
 
-Orderbook::~Orderbook() {
-	shutdown_.store(true, std::memory_order_release);
-	shutdownConditionVariable_.notify_one();
-	ordersPruneThread_.join();
-}
+//Orderbook::~Orderbook() {
+//	shutdown_.store(true, std::memory_order_release);
+//	shutdownConditionVariable_.notify_one();
+//	ordersPruneThread_.join();
+//}
+Orderbook::~Orderbook() {}
 
 /* Adds an order to the orderbook.
  * Runs in O(N * log(M)) where N is the total amount of orders and M is the amount of price levels.

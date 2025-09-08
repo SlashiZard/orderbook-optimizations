@@ -13,11 +13,9 @@
 #include "OrderbookLevelInfos.h"
 #include "Trade.h"
 #include "ThreadPool.h"
+#include "IOrderbook.h"
 
-using BidMap = std::map<Price, OrderPointers, std::greater<Price>>;
-using AskMap = std::map<Price, OrderPointers, std::less<Price>>;
-
-class Orderbook {
+class Orderbook : IOrderbook {
 public:
     Orderbook();
     Orderbook(const Orderbook&) = delete;
@@ -41,11 +39,11 @@ public:
     static const IOrderbookSnapshotStrategy& ThreadPoolStrategy();
     static const IOrderbookSnapshotStrategy& AsyncThreadPoolStrategy();
 
-    Trades AddOrder(OrderPointer order);
-    void CancelOrder(OrderId orderId);
-    Trades ModifyOrder(OrderModify order);
+    Trades AddOrder(OrderPointer order) override;
+    void CancelOrder(OrderId orderId) override;
+    Trades ModifyOrder(OrderModify order) override;
 
-    std::size_t Size() const;
+    std::size_t Size() const override;
     OrderbookLevelInfos GetOrderInfos(const IOrderbookSnapshotStrategy& strategy) const;
     OrderbookLevelInfos GetOrderInfos(const IOrderbookSnapshotStrategy& strategy, ThreadPool& pool) const;
 

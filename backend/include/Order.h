@@ -59,3 +59,19 @@ private:
 
 using OrderPointer = std::shared_ptr<Order>;
 using OrderPointers = std::list<OrderPointer>;
+
+struct OrderEntry {
+    OrderPointer order_{ nullptr };
+    OrderPointers::iterator location_;
+};
+
+struct LevelData {
+    Quantity quantity_{};
+    Quantity count_{};
+
+    enum class Action {
+        Add,
+        Remove,
+        Match,
+    };
+};

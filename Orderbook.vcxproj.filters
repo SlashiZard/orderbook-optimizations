@@ -27,6 +27,9 @@
     <ClCompile Include="backend\src\Benchmark.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="backend\src\VanillaOrderbook.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="backend\include\ApiClient.h">
@@ -72,6 +75,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="backend\include\IOrderbook.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\include\VanillaOrderbook.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
