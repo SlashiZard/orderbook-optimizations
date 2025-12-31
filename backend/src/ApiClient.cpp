@@ -69,6 +69,6 @@ void ApiClient::fillOrderbookBinance(Orderbook& orderbook, OrderId& orderId) {
 		double quantity = static_cast<double>(ask.quantity_) / SCALE_FACTOR;
 		std::cout << price << ' ' << quantity << '\n';
 
-		orderbook.AddOrder(std::make_shared<Order>(OrderType::GoodTillCancel, orderId++, Side::Buy, ask.price_, ask.quantity_));
+		orderbook.AddOrder(std::make_shared<Order>(OrderType::GoodTillCancel, orderId++, Side::Sell, ask.price_, ask.quantity_));
 	}
 }
