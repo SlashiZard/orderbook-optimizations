@@ -4,7 +4,7 @@
 #include <iostream>
 
 #include "ApiClient.h"
-#include "Orderbook.h"
+#include "MapOrderbook.h"
 
 using json = nlohmann::json;
 
@@ -52,7 +52,7 @@ L2Data ApiClient::FetchL2Data(const std::string& symbol, int limit) {
 	return l2data;
 }
 
-void ApiClient::fillOrderbookBinance(Orderbook& orderbook, OrderId& orderId) {
+void ApiClient::fillOrderbookBinance(MapOrderbook& orderbook, OrderId& orderId) {
 	ApiClient apiClient;
 	L2Data l2data = apiClient.FetchL2Data(std::string(DEFAULT_TARGET_SYMBOL), DEFAULT_L2_LIMIT);
 

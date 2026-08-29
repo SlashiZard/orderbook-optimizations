@@ -132,7 +132,7 @@
     <ClCompile Include="backend\src\Benchmark.cpp" />
     <ClCompile Include="backend\src\BinarySearchOrderbook.cpp" />
     <ClCompile Include="backend\src\main.cpp" />
-    <ClCompile Include="backend\src\Orderbook.cpp" />
+    <ClCompile Include="backend\src\MapOrderbook.cpp" />
     <ClCompile Include="backend\src\VanillaOrderbook.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -143,7 +143,7 @@
     <ClInclude Include="backend\include\IOrderbook.h" />
     <ClInclude Include="backend\include\LevelInfo.h" />
     <ClInclude Include="backend\include\Order.h" />
-    <ClInclude Include="backend\include\Orderbook.h" />
+    <ClInclude Include="backend\include\MapOrderbook.h" />
     <ClInclude Include="backend\include\OrderBookLevelInfos.h" />
     <ClInclude Include="backend\include\OrderModify.h" />
     <ClInclude Include="backend\include\OrderType.h" />

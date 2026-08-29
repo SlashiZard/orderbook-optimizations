@@ -1,6 +1,6 @@
 #include "pch.h"
 
-#include "../backend/src/Orderbook.cpp"
+#include "../backend/src/MapOrderbook.cpp"
 #include "../backend/src/BinarySearchOrderbook.cpp"
 
 namespace googletest = ::testing;
@@ -176,7 +176,7 @@ public:
 	}
 };
 
-class OrderbookTestsFixture : public googletest::TestWithParam<const char*> {
+class MapOrderbookTestsFixture : public googletest::TestWithParam<const char*> {
 private:
 	const static inline std::filesystem::path Root { std::filesystem::current_path() };
 	const static inline std::filesystem::path TestFolder{ "TestFolder" };
@@ -184,8 +184,8 @@ public:
 	const static inline std::filesystem::path TestFolderPath{ Root / TestFolder };
 };
 
-TEST_P(OrderbookTestsFixture, OrderbookTestSuite) {
-	const auto file = OrderbookTestsFixture::TestFolderPath / GetParam();
+TEST_P(MapOrderbookTestsFixture, MapOrderbookTestSuite) {
+	const auto file = MapOrderbookTestsFixture::TestFolderPath / GetParam();
 
 	InputHandler handler;
 	const auto [updates, result] = handler.GetInformations(file);
@@ -209,7 +209,7 @@ TEST_P(OrderbookTestsFixture, OrderbookTestSuite) {
 		);
 	};
 
-	Orderbook orderbook;
+	MapOrderbook orderbook;
 	for (const auto& update : updates) {
 		switch (update.type_)
 		{
@@ -233,13 +233,13 @@ TEST_P(OrderbookTestsFixture, OrderbookTestSuite) {
 		}
 	}
 
-	const auto& orderbookInfos = orderbook.GetOrderInfos(Orderbook::SequentialStrategy());
+	const auto& orderbookInfos = orderbook.GetOrderInfos(MapOrderbook::SequentialStrategy());
 	ASSERT_EQ(orderbook.Size(), result.allCount_);
 	ASSERT_EQ(orderbookInfos.GetBids().size(), result.bidCount_);
 	ASSERT_EQ(orderbookInfos.GetAsks().size(), result.askCount_);
 }
 
-INSTANTIATE_TEST_CASE_P(Tests, OrderbookTestsFixture, googletest::ValuesIn({
+INSTANTIATE_TEST_CASE_P(Tests, MapOrderbookTestsFixture, googletest::ValuesIn({
 	"Match_GoodTillCancel.txt",
 	"Match_FillAndKill.txt",
 	"Match_FillOrKill_Hit.txt",
