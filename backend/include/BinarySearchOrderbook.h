@@ -43,11 +43,6 @@ private:
     void CancelOrders(OrderIds orderIds);
     void CancelOrderInternal(OrderId orderId);
 
-    void OnOrderCancelled(OrderPointer order);
-    void OnOrderAdded(OrderPointer order);
-    void OnOrderMatched(Price price, Quantity quantity, bool isFullyFilled);
-    void UpdateLevelData(Price price, Quantity quantity, LevelData::Action action);
-
     bool CanFullyFill(Side side, Price price, Quantity quantity) const;
     bool CanMatch(Side side, Price price) const;
     Trades MatchOrders();

@@ -126,6 +126,7 @@
   <ItemGroup>
     <ClCompile Include="backend\src\ApiClient.cpp" />
     <ClCompile Include="backend\src\Benchmark.cpp" />
+    <ClCompile Include="backend\src\BinarySearchOrderbook.cpp" />
     <ClCompile Include="backend\src\main.cpp" />
     <ClCompile Include="backend\src\Orderbook.cpp" />
     <ClCompile Include="backend\src\VanillaOrderbook.cpp" />
@@ -133,6 +134,7 @@
   <ItemGroup>
     <ClInclude Include="backend\include\ApiClient.h" />
     <ClInclude Include="backend\include\Benchmark.h" />
+    <ClInclude Include="backend\include\BinarySearchOrderbook.h" />
     <ClInclude Include="backend\include\Constants.h" />
     <ClInclude Include="backend\include\IOrderbook.h" />
     <ClInclude Include="backend\include\LevelInfo.h" />
