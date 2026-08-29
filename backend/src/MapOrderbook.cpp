@@ -3,7 +3,7 @@
 #include <ctime>
 #include <future>
 
-#include "Orderbook.h"
+#include "MapOrderbook.h"
 
 namespace {
 	constexpr int MARKET_END_HOUR = 16;
@@ -12,22 +12,22 @@ namespace {
 }
 
 // Strategy singletons
-const Orderbook::IOrderbookSnapshotStrategy& Orderbook::SequentialStrategy() {
+const MapOrderbook::IOrderbookSnapshotStrategy& MapOrderbook::SequentialStrategy() {
 	static SequentialSnapshot instance;
 	return instance;
 }
 
-const Orderbook::IOrderbookSnapshotStrategy& Orderbook::AsyncStrategy() {
+const MapOrderbook::IOrderbookSnapshotStrategy& MapOrderbook::AsyncStrategy() {
 	static AsyncSnapshot instance;
 	return instance;
 }
 
-const Orderbook::IOrderbookSnapshotStrategy& Orderbook::ThreadPoolStrategy() {
+const MapOrderbook::IOrderbookSnapshotStrategy& MapOrderbook::ThreadPoolStrategy() {
 	static ThreadPoolSnapshot instance;
 	return instance;
 }
 
-const Orderbook::IOrderbookSnapshotStrategy& Orderbook::AsyncThreadPoolStrategy() {
+const MapOrderbook::IOrderbookSnapshotStrategy& MapOrderbook::AsyncThreadPoolStrategy() {
 	static AsyncThreadPoolSnapshot instance;
 	return instance;
 }
@@ -35,7 +35,7 @@ const Orderbook::IOrderbookSnapshotStrategy& Orderbook::AsyncThreadPoolStrategy(
 /* Cancels GFD orders at the end of a trading day (4PM).
  * Runs in O(N * log(M)). 
  */
-void Orderbook::PruneGoodForDayOrders() {
+void MapOrderbook::PruneGoodForDayOrders() {
 	using namespace std::chrono;
 	const auto end = hours(MARKET_END_HOUR);
 
@@ -88,7 +88,7 @@ void Orderbook::PruneGoodForDayOrders() {
  * - N = amount of given order ids and
  * - M = number of distinct price levels.
  */
-void Orderbook::CancelOrders(OrderIds orderIds) {
+void MapOrderbook::CancelOrders(OrderIds orderIds) {
 	std::scoped_lock ordersLock{ ordersMutex_ };
 
 	for (const auto& orderId : orderIds)
@@ -98,7 +98,7 @@ void Orderbook::CancelOrders(OrderIds orderIds) {
 /* Cancels the order with the given order id.
  * Runs in O(log(M)) where M is the number of distinct price levels.
  */
-void Orderbook::CancelOrderInternal(OrderId orderId) {
+void MapOrderbook::CancelOrderInternal(OrderId orderId) {
 	if (!orders_.contains(orderId)) return;
 
 	const auto [order, iterator] = orders_.at(orderId);
@@ -121,22 +121,22 @@ void Orderbook::CancelOrderInternal(OrderId orderId) {
 	OnOrderCancelled(order);
 }
 
-void Orderbook::OnOrderCancelled(OrderPointer order) {
+void MapOrderbook::OnOrderCancelled(OrderPointer order) {
 	UpdateLevelData(order->GetPrice(), order->GetRemainingQuantity(), LevelData::Action::Remove);
 }
 
-void Orderbook::OnOrderAdded(OrderPointer order) {
+void MapOrderbook::OnOrderAdded(OrderPointer order) {
 	UpdateLevelData(order->GetPrice(), order->GetInitialQuantity(), LevelData::Action::Add);
 }
 
-void Orderbook::OnOrderMatched(Price price, Quantity quantity, bool isFullyFilled) {
+void MapOrderbook::OnOrderMatched(Price price, Quantity quantity, bool isFullyFilled) {
 	UpdateLevelData(price, quantity, isFullyFilled ? LevelData::Action::Remove : LevelData::Action::Match);
 }
 
 /* Updates level data corresponding to the given price and quantity based on the given action.
  * Runs in amortized O(1).
  */
-void Orderbook::UpdateLevelData(Price price, Quantity quantity, LevelData::Action action) {
+void MapOrderbook::UpdateLevelData(Price price, Quantity quantity, LevelData::Action action) {
 	auto& data = data_[price];
 
 	data.count_ += action == LevelData::Action::Remove ? -1 : action == LevelData::Action::Add ? 1 : 0;
@@ -153,7 +153,7 @@ void Orderbook::UpdateLevelData(Price price, Quantity quantity, LevelData::Actio
 /* Checks if an order with the given side, price, and quantity can be fully filled.
  * Runs in O(N), where N is the amount of price levels. 
  */
-bool Orderbook::CanFullyFill(Side side, Price price, Quantity quantity) const {
+bool MapOrderbook::CanFullyFill(Side side, Price price, Quantity quantity) const {
 	if (!CanMatch(side, price)) return false;
 
 	std::optional<Price> threshold;
@@ -190,7 +190,7 @@ bool Orderbook::CanFullyFill(Side side, Price price, Quantity quantity) const {
  * For a sell order, checks if it can match the best bid.
  * Runs in O(1).
  */
-bool Orderbook::CanMatch(Side side, Price price) const {
+bool MapOrderbook::CanMatch(Side side, Price price) const {
 	if (side == Side::Buy) {
 		if (asks_.empty())
 			return false;
@@ -209,7 +209,7 @@ bool Orderbook::CanMatch(Side side, Price price) const {
 /* Matches orders in the orderbook.
  * Runs in O(N * log(M)) where N is the total amount of orders and M is the amount of price levels.
  */
-Trades Orderbook::MatchOrders() {
+Trades MapOrderbook::MatchOrders() {
 	Trades trades;
 	trades.reserve(orders_.size());
 
@@ -279,20 +279,20 @@ Trades Orderbook::MatchOrders() {
 	return trades;
 }
 
-//Orderbook::Orderbook() : ordersPruneThread_{ [this] { PruneGoodForDayOrders(); } } {}
-Orderbook::Orderbook() {}
+//MapOrderbook::MapOrderbook() : ordersPruneThread_{ [this] { PruneGoodForDayOrders(); } } {}
+MapOrderbook::MapOrderbook() {}
 
-//Orderbook::~Orderbook() {
+//MapOrderbook::~MapOrderbook() {
 //	shutdown_.store(true, std::memory_order_release);
 //	shutdownConditionVariable_.notify_one();
 //	ordersPruneThread_.join();
 //}
-Orderbook::~Orderbook() {}
+MapOrderbook::~MapOrderbook() {}
 
 /* Adds an order to the orderbook.
  * Runs in O(N * log(M)) where N is the total amount of orders and M is the amount of price levels.
  */
-Trades Orderbook::AddOrder(OrderPointer order) {
+Trades MapOrderbook::AddOrder(OrderPointer order) {
 	std::scoped_lock ordersLock{ ordersMutex_ };
 
 	if (orders_.contains(order->GetOrderId()))
@@ -337,7 +337,7 @@ Trades Orderbook::AddOrder(OrderPointer order) {
 /* Acquires a lock on the orders and then cancels the order with the given order id.
  * Runs in O(log(M)) where M is the number of distinct price levels.
  */
-void Orderbook::CancelOrder(OrderId orderId) {
+void MapOrderbook::CancelOrder(OrderId orderId) {
 	std::scoped_lock ordersLock{ ordersMutex_ };
 
 	CancelOrderInternal(orderId);
@@ -346,7 +346,7 @@ void Orderbook::CancelOrder(OrderId orderId) {
 /* Modifies the order with the given order id by first cancelling the order, and then adding a new order with the modified data.
  * Runs in O(N * log(M)) where N is the total amount of orders and M is the amount of price levels.
  */
-Trades Orderbook::ModifyOrder(OrderModify order) {
+Trades MapOrderbook::ModifyOrder(OrderModify order) {
 	OrderType orderType;
 
 	{
@@ -366,25 +366,25 @@ Trades Orderbook::ModifyOrder(OrderModify order) {
 /* Returns the size of the orderbook, i.e. the amount of orders.
  * Runs in O(1).
  */
-std::size_t Orderbook::Size() const {
+std::size_t MapOrderbook::Size() const {
 	std::scoped_lock ordersLock{ ordersMutex_ };
 	return orders_.size();
 }
 
 /* Generates a snapshot of the aggregated orderbook based on the selected strategy.
  */
-OrderbookLevelInfos Orderbook::GetOrderInfos(const IOrderbookSnapshotStrategy& strategy) const {
+OrderbookLevelInfos MapOrderbook::GetOrderInfos(const IOrderbookSnapshotStrategy& strategy) const {
 	return strategy.Generate(bids_, asks_);
 }
 
-OrderbookLevelInfos Orderbook::GetOrderInfos(const IOrderbookSnapshotStrategy& strategy, ThreadPool& pool) const {
+OrderbookLevelInfos MapOrderbook::GetOrderInfos(const IOrderbookSnapshotStrategy& strategy, ThreadPool& pool) const {
 	return strategy.Generate(bids_, asks_, pool);
 }
 
 /* Generates a snapshot of the aggregated orderbook, summarizing the total quantity at each price level for both bids and asks.
  * Runs in O(N) where N is the total amount of orders.
  */
-OrderbookLevelInfos Orderbook::SequentialSnapshot::Generate(const BidMap& bids, const AskMap& asks) const {
+OrderbookLevelInfos MapOrderbook::SequentialSnapshot::Generate(const BidMap& bids, const AskMap& asks) const {
 	LevelInfos bidInfos;
 	bidInfos.reserve(bids.size());
 	for (const auto& [price, orderList] : bids) {
@@ -409,7 +409,7 @@ OrderbookLevelInfos Orderbook::SequentialSnapshot::Generate(const BidMap& bids, 
 /* Generates a snapshot of the aggregated orderbook, with the bids and asks being retrieved concurrently using async/futures.
  * Runs in O(N) where N is the total amount of orders.
  */
-OrderbookLevelInfos Orderbook::AsyncSnapshot::Generate(const BidMap& bids, const AskMap& asks) const {
+OrderbookLevelInfos MapOrderbook::AsyncSnapshot::Generate(const BidMap& bids, const AskMap& asks) const {
 	auto CreateLevelInfos = [](Price price, const OrderPointers& orders) {
 		return LevelInfo{ price, std::accumulate(orders.begin(), orders.end(), (Quantity)0,
 			[](Quantity runningSum, const OrderPointer& order)
@@ -444,7 +444,7 @@ OrderbookLevelInfos Orderbook::AsyncSnapshot::Generate(const BidMap& bids, const
 /* Generates a snapshot of the aggregated orderbook, with the bids and asks being retrieved concurrently using a thread pool.
  * Runs in O(N) where N is the total amount of orders.
  */
-OrderbookLevelInfos Orderbook::ThreadPoolSnapshot::Generate(const BidMap& bids, const AskMap& asks, ThreadPool& pool) const {
+OrderbookLevelInfos MapOrderbook::ThreadPoolSnapshot::Generate(const BidMap& bids, const AskMap& asks, ThreadPool& pool) const {
 	auto CreateLevelInfos = [](Price price, const OrderPointers& orders) {
 		return LevelInfo{ price, std::accumulate(orders.begin(), orders.end(), (Quantity)0,
 			[](Quantity runningSum, const OrderPointer& order)
@@ -499,7 +499,7 @@ OrderbookLevelInfos Orderbook::ThreadPoolSnapshot::Generate(const BidMap& bids, 
 /* Generates a snapshot of the aggregated orderbook, with the bids and asks being retrieved concurrently using async/futures and a thread pool.
  * Runs in O(N) where N is the total amount of orders.
  */
-OrderbookLevelInfos Orderbook::AsyncThreadPoolSnapshot::Generate(const BidMap& bids, const AskMap& asks, ThreadPool& pool) const {
+OrderbookLevelInfos MapOrderbook::AsyncThreadPoolSnapshot::Generate(const BidMap& bids, const AskMap& asks, ThreadPool& pool) const {
 	auto CreateLevelInfos = [](Price price, const OrderPointers& orders) {
 		return LevelInfo{ price, std::accumulate(orders.begin(), orders.end(), (Quantity)0,
 			[](Quantity runningSum, const OrderPointer& order)

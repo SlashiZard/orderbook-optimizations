@@ -18,7 +18,7 @@
     <ClCompile Include="backend\src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="backend\src\Orderbook.cpp">
+    <ClCompile Include="backend\src\MapOrderbook.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="backend\src\ApiClient.cpp">
@@ -47,7 +47,7 @@
     <ClInclude Include="backend\include\Order.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="backend\include\Orderbook.h">
+    <ClInclude Include="backend\include\MapOrderbook.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="backend\include\OrderBookLevelInfos.h">

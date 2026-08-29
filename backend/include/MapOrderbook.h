@@ -15,14 +15,14 @@
 #include "ThreadPool.h"
 #include "IOrderbook.h"
 
-class Orderbook : IOrderbook {
+class MapOrderbook : IOrderbook {
 public:
-    Orderbook();
-    Orderbook(const Orderbook&) = delete;
-    void operator=(const Orderbook&) = delete;
-    Orderbook(Orderbook&&) = delete;
-    void operator=(Orderbook&&) = delete;
-    ~Orderbook();
+    MapOrderbook();
+    MapOrderbook(const MapOrderbook&) = delete;
+    void operator=(const MapOrderbook&) = delete;
+    MapOrderbook(MapOrderbook&&) = delete;
+    void operator=(MapOrderbook&&) = delete;
+    ~MapOrderbook();
 
     struct IOrderbookSnapshotStrategy {
         virtual ~IOrderbookSnapshotStrategy() = default;

@@ -2,7 +2,7 @@
 #include <iomanip>
 
 #include "Benchmark.h"
-#include "Orderbook.h"
+#include "MapOrderbook.h"
 #include "VanillaOrderbook.h"
 #include "BinarySearchOrderbook.h"
 
@@ -16,8 +16,8 @@ void runAllBenchmarks(ThreadPool& pool) {
 
 	runBenchmark<VanillaOrderbook>("VanillaOrderbook::GetOrderInfos()", DEFAULT_BENCHMARK_SIZE, [](VanillaOrderbook& ob) { return ob.GetOrderInfos(); });
 	runBenchmark<BinarySearchOrderbook>("BinarySearchOrderbook::GetOrderInfos()", DEFAULT_BENCHMARK_SIZE, [](BinarySearchOrderbook& ob) { return ob.GetOrderInfos(); });
-	runBenchmark<Orderbook>("Orderbook::GetOrderInfos()", DEFAULT_BENCHMARK_SIZE, [](Orderbook& ob) { return ob.GetOrderInfos(Orderbook::SequentialStrategy()); });
-	runBenchmark<Orderbook>("Orderbook::GetOrderInfosAsync()", DEFAULT_BENCHMARK_SIZE, [](Orderbook& ob) { return ob.GetOrderInfos(Orderbook::AsyncStrategy()); });
-	//runBenchmark<Orderbook>("Orderbook::GetOrderInfosAsyncPooled()", DEFAULT_BENCHMARK_SIZE, [&](Orderbook& ob) { return ob.GetOrderInfos(Orderbook::AsyncThreadPoolStrategy(), pool); });
-	runBenchmark<Orderbook>("Orderbook::GetOrderInfosPooled()", DEFAULT_BENCHMARK_SIZE, [&](Orderbook& ob) { return ob.GetOrderInfos(Orderbook::ThreadPoolStrategy(), pool); });
+	runBenchmark<MapOrderbook>("MapOrderbook::GetOrderInfos()", DEFAULT_BENCHMARK_SIZE, [](MapOrderbook& ob) { return ob.GetOrderInfos(MapOrderbook::SequentialStrategy()); });
+	runBenchmark<MapOrderbook>("MapOrderbook::GetOrderInfosAsync()", DEFAULT_BENCHMARK_SIZE, [](MapOrderbook& ob) { return ob.GetOrderInfos(MapOrderbook::AsyncStrategy()); });
+	//runBenchmark<MapOrderbook>("MapOrderbook::GetOrderInfosAsyncPooled()", DEFAULT_BENCHMARK_SIZE, [&](MapOrderbook& ob) { return ob.GetOrderInfos(MapOrderbook::AsyncThreadPoolStrategy(), pool); });
+	runBenchmark<MapOrderbook>("MapOrderbook::GetOrderInfosPooled()", DEFAULT_BENCHMARK_SIZE, [&](MapOrderbook& ob) { return ob.GetOrderInfos(MapOrderbook::ThreadPoolStrategy(), pool); });
 }

@@ -5,7 +5,7 @@
 #include <utility>
 
 #include "LevelInfo.h"
-#include "Orderbook.h"
+#include "MapOrderbook.h"
 
 struct L2Data {
 	LevelInfos bids;
@@ -16,5 +16,5 @@ struct L2Data {
 class ApiClient {
 public:
 	L2Data FetchL2Data(const std::string& symbol, int limit = 5);
-	void fillOrderbookBinance(Orderbook& orderbook, OrderId& orderId);
+	void fillOrderbookBinance(MapOrderbook& orderbook, OrderId& orderId);
 };
