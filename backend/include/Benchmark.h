@@ -43,8 +43,15 @@ void prepareOrderbookBenchmark(size_t numOrders, OrderbookType& orderbook) {
 	}
 }
 
+struct BenchmarkResult {
+	std::string label;
+	std::size_t numOrders;
+	long long durationMs;
+	std::size_t levels;
+};
+
 template<typename OrderbookType, typename Func>
-void runBenchmark(const std::string& label, size_t numOrders, Func&& getLevelInfosFn) {
+BenchmarkResult runBenchmark(const std::string& label, size_t numOrders, Func&& getLevelInfosFn) {
 	OrderbookType orderbook;
 	prepareOrderbookBenchmark(numOrders, orderbook);
 
@@ -55,8 +62,7 @@ void runBenchmark(const std::string& label, size_t numOrders, Func&& getLevelInf
 	auto end = high_resolution_clock::now();
 	auto duration = duration_cast<milliseconds>(end - start).count();
 
-	std::cout << "Executed " << label << " of an orderbook with " << numOrders << " elements in " << duration << "ms\n";
-	std::cout << "Levels: " << levelInfos.GetBids().size() + levelInfos.GetAsks().size() << "\n";
+	return BenchmarkResult{ label, numOrders, duration, levelInfos.GetBids().size() + levelInfos.GetAsks().size() };
 }
 
 template <typename OrderbookType>
