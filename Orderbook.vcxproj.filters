@@ -30,6 +30,9 @@
     <ClCompile Include="backend\src\VanillaOrderbook.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="backend\src\BinarySearchOrderbook.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="backend\include\ApiClient.h">
@@ -78,6 +81,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="backend\include\VanillaOrderbook.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\include\BinarySearchOrderbook.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

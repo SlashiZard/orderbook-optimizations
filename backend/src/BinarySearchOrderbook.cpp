@@ -1,13 +1,34 @@
+#include <algorithm>
 #include <numeric>
-#include <chrono>
-#include <ctime>
-#include <future>
-#include <iostream>
 
 #include "BinarySearchOrderbook.h"
 
+namespace {
+	/* askOrders_ is sorted ascending by price, so the first order whose price is
+	 * strictly greater than `price` marks the end of the eligible (price <= `price`) prefix.
+	 * Templated on the container's const-ness so it can locate both a mutable insertion point
+	 * (AddOrder) and a read-only prefix boundary (CanFullyFill).
+	 */
+	template <typename AskContainer>
+	auto AskInsertionPoint(AskContainer& askOrders, Price price) {
+		return std::upper_bound(askOrders.begin(), askOrders.end(), price, [](Price p, const OrderPointer& o) {
+			return p < o->GetPrice();
+			});
+	}
+
+	/* bidOrders_ is sorted descending by price, so the first order whose price is
+	 * strictly less than `price` marks the end of the eligible (price >= `price`) prefix.
+	 */
+	template <typename BidContainer>
+	auto BidInsertionPoint(BidContainer& bidOrders, Price price) {
+		return std::upper_bound(bidOrders.begin(), bidOrders.end(), price, [](Price p, const OrderPointer& o) {
+			return p > o->GetPrice();
+			});
+	}
+}
+
 /* Cancels all orders with the given order ids.
- * Runs in O(N^2), where N is the amount of given order ids.
+ * Runs in O(N * M), where N is the amount of given order ids and M is the amount of orders.
  */
 void BinarySearchOrderbook::CancelOrders(OrderIds orderIds) {
 	for (const auto& orderId : orderIds)
@@ -15,7 +36,7 @@ void BinarySearchOrderbook::CancelOrders(OrderIds orderIds) {
 }
 
 /* Cancels the order with the given order id.
- * Runs in O(N) where N is the amount of orders.
+ * Runs in O(M) where M is the total amount of orders, since a plain deque has no order-id index.
  */
 void BinarySearchOrderbook::CancelOrderInternal(OrderId orderId) {
 	askOrders_.erase(
@@ -33,168 +54,117 @@ void BinarySearchOrderbook::CancelOrderInternal(OrderId orderId) {
 	);
 }
 
-/* Retrieves the order with the best ask given price-time priority or nullptr if there are none.
- * Runs in O(N) where N is the amount of orders.
+/* Retrieves the ask order with the best (lowest) price, or nullptr if there are none.
+ * Runs in O(1), since askOrders_ is kept sorted ascending by price.
  */
 const OrderPointer BinarySearchOrderbook::getBestAsk() const {
-	OrderPointer bestAskOrder = nullptr;
-
-	for (const auto& order : orders_) {
-		if (!order || order->GetSide() != Side::Sell || order->GetRemainingQuantity() == 0) continue;
-
-		if (!bestAskOrder || order->GetPrice() < bestAskOrder->GetPrice()) {
-			bestAskOrder = order;
-		}
-	}
-
-	return bestAskOrder;
+	return askOrders_.empty() ? nullptr : askOrders_.front();
 }
 
-/* Retrieves the order with the best bid given price-time priority or nullptr if there are none.
- * Runs in O(N) where N is the amount of orders.
+/* Retrieves the bid order with the best (highest) price, or nullptr if there are none.
+ * Runs in O(1), since bidOrders_ is kept sorted descending by price.
  */
 const OrderPointer BinarySearchOrderbook::getBestBid() const {
-	OrderPointer bestBidOrder = nullptr;
-
-	for (const auto& order : orders_) {
-		if (!order || order->GetSide() != Side::Buy || order->GetRemainingQuantity() == 0) continue;
-
-		if (!bestBidOrder || order->GetPrice() > bestBidOrder->GetPrice()) {
-			bestBidOrder = order;
-		}
-	}
-
-	return bestBidOrder;
+	return bidOrders_.empty() ? nullptr : bidOrders_.front();
 }
 
-/* Retrieves the order with the best ask given price-time priority or nullptr if there are none.
- * Runs in O(N) where N is the amount of orders.
+/* Retrieves the ask order with the worst (highest) price, or nullptr if there are none.
+ * Runs in O(1), since askOrders_ is kept sorted ascending by price.
  */
 const OrderPointer BinarySearchOrderbook::getWorstAsk() const {
-	OrderPointer bestAskOrder = nullptr;
-
-	for (const auto& order : orders_) {
-		if (!order || order->GetSide() != Side::Sell || order->GetRemainingQuantity() == 0) continue;
-
-		if (!bestAskOrder || order->GetPrice() > bestAskOrder->GetPrice()) {
-			bestAskOrder = order;
-		}
-	}
-
-	return bestAskOrder;
+	return askOrders_.empty() ? nullptr : askOrders_.back();
 }
 
-/* Retrieves the order with the best bid given price-time priority or nullptr if there are none.
- * Runs in O(N) where N is the amount of orders.
+/* Retrieves the bid order with the worst (lowest) price, or nullptr if there are none.
+ * Runs in O(1), since bidOrders_ is kept sorted descending by price.
  */
 const OrderPointer BinarySearchOrderbook::getWorstBid() const {
-	OrderPointer bestBidOrder = nullptr;
-
-	for (const auto& order : orders_) {
-		if (!order || order->GetSide() != Side::Buy || order->GetRemainingQuantity() == 0) continue;
-
-		if (!bestBidOrder || order->GetPrice() < bestBidOrder->GetPrice()) {
-			bestBidOrder = order;
-		}
-	}
-
-	return bestBidOrder;
+	return bidOrders_.empty() ? nullptr : bidOrders_.back();
 }
 
+/* Runs in O(M) where M is the total amount of orders, since a plain deque has no order-id index.
+ */
 bool BinarySearchOrderbook::orderExists(OrderId orderId) const {
-	return std::any_of(orders_.begin(), orders_.end(), [&](const OrderPointer& o) {
-		return o && o->GetOrderId() == orderId;
-		});
+	return std::any_of(askOrders_.begin(), askOrders_.end(), [&](const OrderPointer& o) {
+		return o->GetOrderId() == orderId;
+		})
+		|| std::any_of(bidOrders_.begin(), bidOrders_.end(), [&](const OrderPointer& o) {
+			return o->GetOrderId() == orderId;
+			});
 }
 
+/* Runs in O(1), using the O(1) best-price lookups above.
+ */
 bool BinarySearchOrderbook::CanMatch(Side side, Price price) const {
-	if (orders_.empty())
-		return false;
-
 	if (side == Side::Buy) {
 		const auto& bestAskOrder = getBestAsk();
-		return price >= bestAskOrder->GetPrice();
+		return bestAskOrder && price >= bestAskOrder->GetPrice();
 	}
 	else {
 		const auto& bestBidOrder = getBestBid();
-		return price <= bestBidOrder->GetPrice();
+		return bestBidOrder && price <= bestBidOrder->GetPrice();
 	}
 }
 
 /* Checks if an order with the given side, price, and quantity can be fully filled.
- * Runs in O(N), where N is the amount of price levels.
+ * Runs in O(log M + K), where M is the amount of orders on the opposing side and K is the
+ * number of price-eligible orders inspected: std::upper_bound finds the eligible prefix in
+ * O(log M), then quantities are summed only within that prefix.
  */
 bool BinarySearchOrderbook::CanFullyFill(Side side, Price price, Quantity quantity) const {
-	for (const auto& order : orders_) {
-		if (!order || order->GetSide() != (side == Side::Buy ? Side::Sell : Side::Buy)) continue;
-		if (order->GetRemainingQuantity() == 0) continue;
-
-		if ((side == Side::Buy && order->GetPrice() > price) ||
-			(side == Side::Sell && order->GetPrice() < price))
-			continue;
-
-		if (quantity <= order->GetRemainingQuantity())
-			return true;
-
-		quantity -= order->GetRemainingQuantity();
+	if (side == Side::Buy) {
+		auto end = AskInsertionPoint(askOrders_, price);
+		for (auto it = askOrders_.begin(); it != end; ++it) {
+			if (quantity <= (*it)->GetRemainingQuantity())
+				return true;
+			quantity -= (*it)->GetRemainingQuantity();
+		}
+	}
+	else {
+		auto end = BidInsertionPoint(bidOrders_, price);
+		for (auto it = bidOrders_.begin(); it != end; ++it) {
+			if (quantity <= (*it)->GetRemainingQuantity())
+				return true;
+			quantity -= (*it)->GetRemainingQuantity();
+		}
 	}
 
 	return false;
 }
 
 /* Matches orders in the orderbook.
- * Runs in O(N * log(M)) where N is the total amount of orders and M is the amount of price levels.
+ * Runs in O(K) where K is the number of orders fully filled and removed during this call,
+ * since deque::erase(begin()) is O(1).
  */
 Trades BinarySearchOrderbook::MatchOrders() {
 	Trades trades;
 
-	while (true) {
-		OrderPointer bestBid = nullptr;
-		OrderPointer bestAsk = nullptr;
+	while (!bidOrders_.empty() && !askOrders_.empty()) {
+		auto& bestBid = bidOrders_.front();
+		auto& bestAsk = askOrders_.front();
 
-		for (auto& order : orders_) {
-			if (!order || order->GetSide() != Side::Buy || order->GetRemainingQuantity() == 0) continue;
-
-			if (!bestBid || order->GetPrice() > bestBid->GetPrice()) {
-				bestBid = order;
-			}
-		}
-
-		for (auto& order : orders_) {
-			if (!order || order->GetSide() != Side::Sell || order->GetRemainingQuantity() == 0) continue;
-
-			if (!bestAsk || order->GetPrice() < bestAsk->GetPrice()) {
-				bestAsk = order;
-			}
-		}
-
-		if (!bestBid || !bestAsk || bestBid->GetPrice() < bestAsk->GetPrice()) break;
+		if (bestBid->GetPrice() < bestAsk->GetPrice()) break;
 
 		Quantity quantity = std::min(bestBid->GetRemainingQuantity(), bestAsk->GetRemainingQuantity());
 
 		bestBid->Fill(quantity);
 		bestAsk->Fill(quantity);
 
-		//std::cout << "Matched orders " << bestBid->GetOrderId() << " and " << bestAsk->GetOrderId() << '\n';
-
 		trades.push_back(Trade{
 			TradeInfo{ bestBid->GetOrderId(), bestBid->GetPrice(), quantity },
 			TradeInfo{ bestAsk->GetOrderId(), bestAsk->GetPrice(), quantity }
 			});
 
-		orders_.erase(
-			std::remove_if(orders_.begin(), orders_.end(), [](const auto& o) {
-				return o->IsFilled();
-				}),
-			orders_.end()
-		);
+		if (bestBid->IsFilled()) bidOrders_.erase(bidOrders_.begin());
+		if (bestAsk->IsFilled()) askOrders_.erase(askOrders_.begin());
 	}
 
 	return trades;
 }
 
-/* Adds an order to the orderbook.
- * Runs in O(N * log(M)) where N is the total amount of orders and M is the amount of price levels.
+/* Adds an order to the orderbook, inserting it at its sorted position.
+ * Runs in O(log M + M) where M is the amount of orders on its side: O(log M) to find the
+ * sorted insertion point via binary search, O(M) to shift elements for the deque insert.
  */
 Trades BinarySearchOrderbook::AddOrder(OrderPointer order) {
 	if (!order || orderExists(order->GetOrderId()))
@@ -221,30 +191,40 @@ Trades BinarySearchOrderbook::AddOrder(OrderPointer order) {
 	if (order->GetOrderType() == OrderType::FillOrKill && !CanFullyFill(order->GetSide(), order->GetPrice(), order->GetInitialQuantity()))
 		return {};
 
-	orders_.push_back(order);
+	if (order->GetSide() == Side::Sell) {
+		askOrders_.insert(AskInsertionPoint(askOrders_, order->GetPrice()), order);
+	}
+	else {
+		bidOrders_.insert(BidInsertionPoint(bidOrders_, order->GetPrice()), order);
+	}
 
 	return MatchOrders();
 }
 
-/* Acquires a lock on the orders and then cancels the order with the given order id.
- * Runs in O(log(M)) where M is the number of distinct price levels.
+/* Cancels the order with the given order id.
+ * Runs in O(M) where M is the total amount of orders.
  */
 void BinarySearchOrderbook::CancelOrder(OrderId orderId) {
 	CancelOrderInternal(orderId);
 }
 
 /* Modifies the order with the given order id by first cancelling the order, and then adding a new order with the modified data.
- * Runs in O(N * log(M)) where N is the total amount of orders and M is the amount of price levels.
+ * Runs in O(M) to find and cancel the existing order, plus the cost of AddOrder for the replacement.
  */
 Trades BinarySearchOrderbook::ModifyOrder(OrderModify order) {
+	auto find = [&](const std::deque<OrderPointer>& orders) {
+		return std::find_if(orders.begin(), orders.end(), [&](const auto& o) {
+			return o->GetOrderId() == order.GetOrderId();
+			});
+		};
+
+	auto askIt = find(askOrders_);
+	auto bidIt = find(bidOrders_);
+
 	OrderType orderType;
-
-	auto it = std::find_if(orders_.begin(), orders_.end(), [&](const auto& o) {
-		return o->GetOrderId() == order.GetOrderId();
-		});
-	if (it == orders_.end()) return {};
-
-	orderType = (*it)->GetOrderType();
+	if (askIt != askOrders_.end()) orderType = (*askIt)->GetOrderType();
+	else if (bidIt != bidOrders_.end()) orderType = (*bidIt)->GetOrderType();
+	else return {};
 
 	CancelOrder(order.GetOrderId());
 	return AddOrder(order.ToOrderPointer(orderType));
@@ -254,27 +234,24 @@ Trades BinarySearchOrderbook::ModifyOrder(OrderModify order) {
  * Runs in O(1).
  */
 std::size_t BinarySearchOrderbook::Size() const {
-	return orders_.size();
+	return askOrders_.size() + bidOrders_.size();
 }
 
-/* Generates a snapshot of the aggregated orderbook based on the selected strategy.
+/* Generates a snapshot of the aggregated orderbook.
+ * Runs in O(M) where M is the total amount of orders.
  */
 OrderbookLevelInfos BinarySearchOrderbook::GetOrderInfos() const {
 	std::map<Price, Quantity, std::greater<Price>> bidTotalMap;
 	std::map<Price, Quantity, std::less<Price>> askTotalMap;
 
-	for (const auto& order : orders_) {
-		if (!order || order->GetRemainingQuantity() == 0) continue;
+	for (const auto& order : bidOrders_) {
+		if (order->GetRemainingQuantity() == 0) continue;
+		bidTotalMap[order->GetPrice()] += order->GetRemainingQuantity();
+	}
 
-		auto price = order->GetPrice();
-		auto quantity = order->GetRemainingQuantity();
-
-		if (order->GetSide() == Side::Buy) {
-			bidTotalMap[price] += quantity;
-		}
-		else {
-			askTotalMap[price] += quantity;
-		}
+	for (const auto& order : askOrders_) {
+		if (order->GetRemainingQuantity() == 0) continue;
+		askTotalMap[order->GetPrice()] += order->GetRemainingQuantity();
 	}
 
 	LevelInfos bidInfos, askInfos;

@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "../backend/src/Orderbook.cpp"
+#include "../backend/src/BinarySearchOrderbook.cpp"
 
 namespace googletest = ::testing;
 
@@ -232,13 +233,86 @@ TEST_P(OrderbookTestsFixture, OrderbookTestSuite) {
 		}
 	}
 
-	const auto& orderbookInfos = orderbook.GetOrderInfos();
+	const auto& orderbookInfos = orderbook.GetOrderInfos(Orderbook::SequentialStrategy());
 	ASSERT_EQ(orderbook.Size(), result.allCount_);
 	ASSERT_EQ(orderbookInfos.GetBids().size(), result.bidCount_);
 	ASSERT_EQ(orderbookInfos.GetAsks().size(), result.askCount_);
 }
 
 INSTANTIATE_TEST_CASE_P(Tests, OrderbookTestsFixture, googletest::ValuesIn({
+	"Match_GoodTillCancel.txt",
+	"Match_FillAndKill.txt",
+	"Match_FillOrKill_Hit.txt",
+	"Match_FillOrKill_Miss.txt",
+	"Cancel_Success.txt",
+	"Modify_Side.txt",
+	"Match_Market.txt"
+}));
+
+class BinarySearchOrderbookTestsFixture : public googletest::TestWithParam<const char*> {
+private:
+	const static inline std::filesystem::path Root{ std::filesystem::current_path() };
+	const static inline std::filesystem::path TestFolder{ "TestFolder" };
+public:
+	const static inline std::filesystem::path TestFolderPath{ Root / TestFolder };
+};
+
+TEST_P(BinarySearchOrderbookTestsFixture, BinarySearchOrderbookTestSuite) {
+	const auto file = BinarySearchOrderbookTestsFixture::TestFolderPath / GetParam();
+
+	InputHandler handler;
+	const auto [updates, result] = handler.GetInformations(file);
+
+	auto GetOrder = [](const Information& information) {
+		return std::make_shared<Order>(
+			information.orderType_,
+			information.orderId_,
+			information.side_,
+			information.price_,
+			information.quantity_
+		);
+	};
+
+	auto GetOrderModify = [](const Information& information) {
+		return OrderModify(
+			information.orderId_,
+			information.side_,
+			information.price_,
+			information.quantity_
+		);
+	};
+
+	BinarySearchOrderbook orderbook;
+	for (const auto& update : updates) {
+		switch (update.type_)
+		{
+		case ActionType::Add:
+		{
+			const Trades& trades = orderbook.AddOrder(GetOrder(update));
+		}
+		break;
+		case ActionType::Modify:
+		{
+			const Trades& trades = orderbook.ModifyOrder(GetOrderModify(update));
+		}
+		break;
+		case ActionType::Cancel:
+		{
+			orderbook.CancelOrder(update.orderId_);
+		}
+		break;
+		default:
+			throw std::logic_error("Unsupported Update");
+		}
+	}
+
+	const auto& orderbookInfos = orderbook.GetOrderInfos();
+	ASSERT_EQ(orderbook.Size(), result.allCount_);
+	ASSERT_EQ(orderbookInfos.GetBids().size(), result.bidCount_);
+	ASSERT_EQ(orderbookInfos.GetAsks().size(), result.askCount_);
+}
+
+INSTANTIATE_TEST_CASE_P(Tests, BinarySearchOrderbookTestsFixture, googletest::ValuesIn({
 	"Match_GoodTillCancel.txt",
 	"Match_FillAndKill.txt",
 	"Match_FillOrKill_Hit.txt",
