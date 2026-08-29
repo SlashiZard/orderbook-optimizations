@@ -2,6 +2,7 @@
 
 #include <map>
 #include <unordered_map>
+#include <deque>
 #include <thread>
 #include <condition_variable>
 #include <mutex>
@@ -31,8 +32,8 @@ public:
     OrderbookLevelInfos GetOrderInfos() const;
 
 private:
-    std::vector<OrderPointer> askOrders_;
-    std::vector<OrderPointer> bidOrders_;
+    std::deque<OrderPointer> askOrders_;
+    std::deque<OrderPointer> bidOrders_;
 
     const OrderPointer getBestAsk() const;
     const OrderPointer getBestBid() const;

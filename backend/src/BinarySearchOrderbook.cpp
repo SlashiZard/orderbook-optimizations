@@ -6,11 +6,11 @@
 namespace {
 	/* askOrders_ is sorted ascending by price, so the first order whose price is
 	 * strictly greater than `price` marks the end of the eligible (price <= `price`) prefix.
-	 * Templated on the vector's const-ness so it can locate both a mutable insertion point
+	 * Templated on the container's const-ness so it can locate both a mutable insertion point
 	 * (AddOrder) and a read-only prefix boundary (CanFullyFill).
 	 */
-	template <typename AskVector>
-	auto AskInsertionPoint(AskVector& askOrders, Price price) {
+	template <typename AskContainer>
+	auto AskInsertionPoint(AskContainer& askOrders, Price price) {
 		return std::upper_bound(askOrders.begin(), askOrders.end(), price, [](Price p, const OrderPointer& o) {
 			return p < o->GetPrice();
 			});
@@ -19,8 +19,8 @@ namespace {
 	/* bidOrders_ is sorted descending by price, so the first order whose price is
 	 * strictly less than `price` marks the end of the eligible (price >= `price`) prefix.
 	 */
-	template <typename BidVector>
-	auto BidInsertionPoint(BidVector& bidOrders, Price price) {
+	template <typename BidContainer>
+	auto BidInsertionPoint(BidContainer& bidOrders, Price price) {
 		return std::upper_bound(bidOrders.begin(), bidOrders.end(), price, [](Price p, const OrderPointer& o) {
 			return p > o->GetPrice();
 			});
@@ -36,7 +36,7 @@ void BinarySearchOrderbook::CancelOrders(OrderIds orderIds) {
 }
 
 /* Cancels the order with the given order id.
- * Runs in O(M) where M is the total amount of orders, since a plain vector has no order-id index.
+ * Runs in O(M) where M is the total amount of orders, since a plain deque has no order-id index.
  */
 void BinarySearchOrderbook::CancelOrderInternal(OrderId orderId) {
 	askOrders_.erase(
@@ -82,7 +82,7 @@ const OrderPointer BinarySearchOrderbook::getWorstBid() const {
 	return bidOrders_.empty() ? nullptr : bidOrders_.back();
 }
 
-/* Runs in O(M) where M is the total amount of orders, since a plain vector has no order-id index.
+/* Runs in O(M) where M is the total amount of orders, since a plain deque has no order-id index.
  */
 bool BinarySearchOrderbook::orderExists(OrderId orderId) const {
 	return std::any_of(askOrders_.begin(), askOrders_.end(), [&](const OrderPointer& o) {
@@ -133,9 +133,8 @@ bool BinarySearchOrderbook::CanFullyFill(Side side, Price price, Quantity quanti
 }
 
 /* Matches orders in the orderbook.
- * Runs in O(T) where T is the total quantity matched across all trades, since each match
- * removes a fully-filled order from the front of its vector in amortized O(1) relative to
- * the remaining matching work.
+ * Runs in O(K) where K is the number of orders fully filled and removed during this call,
+ * since deque::erase(begin()) is O(1).
  */
 Trades BinarySearchOrderbook::MatchOrders() {
 	Trades trades;
@@ -165,7 +164,7 @@ Trades BinarySearchOrderbook::MatchOrders() {
 
 /* Adds an order to the orderbook, inserting it at its sorted position.
  * Runs in O(log M + M) where M is the amount of orders on its side: O(log M) to find the
- * sorted insertion point via binary search, O(M) to shift elements for the vector insert.
+ * sorted insertion point via binary search, O(M) to shift elements for the deque insert.
  */
 Trades BinarySearchOrderbook::AddOrder(OrderPointer order) {
 	if (!order || orderExists(order->GetOrderId()))
@@ -213,7 +212,7 @@ void BinarySearchOrderbook::CancelOrder(OrderId orderId) {
  * Runs in O(M) to find and cancel the existing order, plus the cost of AddOrder for the replacement.
  */
 Trades BinarySearchOrderbook::ModifyOrder(OrderModify order) {
-	auto find = [&](const std::vector<OrderPointer>& orders) {
+	auto find = [&](const std::deque<OrderPointer>& orders) {
 		return std::find_if(orders.begin(), orders.end(), [&](const auto& o) {
 			return o->GetOrderId() == order.GetOrderId();
 			});
